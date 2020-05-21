@@ -41,9 +41,9 @@ func GetOutputManager(outFmt string, failuresOnly bool) outputManager {
 	case outputSTD:
 		return newSTDOutputManager(failuresOnly)
 	case outputJSON:
-		return newDefaultJSONOutputManager()
+		return newDefaultJSONOutputManager(failuresOnly)
 	case outputTAP:
-		return newDefaultTAPOutputManager()
+		return newDefaultTAPOutputManager(failuresOnly)
 	default:
 		return newSTDOutputManager(failuresOnly)
 	}
@@ -102,15 +102,18 @@ type jsonOutputManager struct {
 	logger *log.Logger
 
 	data []dataEvalResult
+
+	FailuresOnly bool
 }
 
-func newDefaultJSONOutputManager() *jsonOutputManager {
-	return newJSONOutputManager(log.New(os.Stdout, "", 0))
+func newDefaultJSONOutputManager(failuresOnly bool) *jsonOutputManager {
+	return newJSONOutputManager(log.New(os.Stdout, "", 0), failuresOnly)
 }
 
-func newJSONOutputManager(l *log.Logger) *jsonOutputManager {
+func newJSONOutputManager(l *log.Logger, failuresOnly bool) *jsonOutputManager {
 	return &jsonOutputManager{
 		logger: l,
+		FailuresOnly: failuresOnly,
 	}
 }
 
@@ -139,12 +142,14 @@ func (j *jsonOutputManager) Put(r ValidationResult) error {
 		errs = append(errs, e.String())
 	}
 
-	j.data = append(j.data, dataEvalResult{
-		Filename: r.FileName,
-		Kind:     r.Kind,
-		Status:   getStatus(r),
-		Errors:   errs,
-	})
+	if getStatus(r) == statusValid && !j.FailuresOnly {
+		j.data = append(j.data, dataEvalResult{
+			Filename: r.FileName,
+			Kind:     r.Kind,
+			Status:   getStatus(r),
+			Errors:   errs,
+		})
+	}
 
 	return nil
 }
@@ -170,19 +175,22 @@ type tapOutputManager struct {
 	logger *log.Logger
 
 	data []dataEvalResult
+
+	FailuresOnly bool
 }
 
 // newDefaultTapOutManager instantiates a new instance of tapOutputManager
 // using the default logger.
-func newDefaultTAPOutputManager() *tapOutputManager {
-	return newTAPOutputManager(log.New(os.Stdout, "", 0))
+func newDefaultTAPOutputManager(failuresOnly bool) *tapOutputManager {
+	return newTAPOutputManager(log.New(os.Stdout, "", 0), failuresOnly)
 }
 
 // newTapOutputManager constructs an instance of tapOutputManager given a
 // logger instance.
-func newTAPOutputManager(l *log.Logger) *tapOutputManager {
+func newTAPOutputManager(l *log.Logger, failuresOnly bool) *tapOutputManager {
 	return &tapOutputManager{
 		logger: l,
+		FailuresOnly: failuresOnly,
 	}
 }
 
@@ -192,12 +200,14 @@ func (j *tapOutputManager) Put(r ValidationResult) error {
 		errs = append(errs, e.String())
 	}
 
-	j.data = append(j.data, dataEvalResult{
-		Filename: r.FileName,
-		Kind:     r.Kind,
-		Status:   getStatus(r),
-		Errors:   errs,
-	})
+	if getStatus(r) == statusValid && !j.FailuresOnly {
+		j.data = append(j.data, dataEvalResult{
+			Filename: r.FileName,
+			Kind:     r.Kind,
+			Status:   getStatus(r),
+			Errors:   errs,
+		})
+	}
 
 	return nil
 }
