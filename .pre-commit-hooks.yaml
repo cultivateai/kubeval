@@ -1,0 +1,8 @@
+-   id: kubeval
+    name: kubeval
+    description: Validate Kubernetes manifests.
+    entry: kubeval
+    always_run: true
+    pass_filenames: false
+    language: golang
+    args: [--failures-only, -d, release/kubernetes/, -i replicas.yaml, -i list.yaml]

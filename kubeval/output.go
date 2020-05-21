@@ -36,26 +36,29 @@ func validOutputs() []string {
 	}
 }
 
-func GetOutputManager(outFmt string) outputManager {
+func GetOutputManager(outFmt string, failuresOnly bool) outputManager {
 	switch outFmt {
 	case outputSTD:
-		return newSTDOutputManager()
+		return newSTDOutputManager(failuresOnly)
 	case outputJSON:
 		return newDefaultJSONOutputManager()
 	case outputTAP:
 		return newDefaultTAPOutputManager()
 	default:
-		return newSTDOutputManager()
+		return newSTDOutputManager(failuresOnly)
 	}
 }
 
 // STDOutputManager reports `kubeval` results to stdout.
 type STDOutputManager struct {
+	FailuresOnly bool
 }
 
 // newSTDOutputManager instantiates a new instance of STDOutputManager.
-func newSTDOutputManager() *STDOutputManager {
-	return &STDOutputManager{}
+func newSTDOutputManager(failuresOnly bool) *STDOutputManager {
+	return &STDOutputManager{
+		FailuresOnly: failuresOnly,
+	}
 }
 
 func (s *STDOutputManager) Put(result ValidationResult) error {
@@ -63,11 +66,11 @@ func (s *STDOutputManager) Put(result ValidationResult) error {
 		for _, desc := range result.Errors {
 			kLog.Warn(result.FileName, "contains an invalid", result.Kind, fmt.Sprintf("(%s)", result.QualifiedName()), "-", desc.String())
 		}
-	} else if result.Kind == "" {
+	} else if result.Kind == "" && !s.FailuresOnly {
 		kLog.Success(result.FileName, "contains an empty YAML document")
 	} else if !result.ValidatedAgainstSchema {
 		kLog.Warn(result.FileName, "containing a", result.Kind, fmt.Sprintf("(%s)", result.QualifiedName()), "was not validated against a schema")
-	} else {
+	} else if !s.FailuresOnly {
 		kLog.Success(result.FileName, "contains a valid", result.Kind, fmt.Sprintf("(%s)", result.QualifiedName()))
 	}
 
